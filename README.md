@@ -1,51 +1,45 @@
-# UOCIS322 - Project 5 #
-Brevet time calculator with MongoDB!
+# UOCIS322 - Project 5
 
-## Overview
+Author: Sewon Sohn\
+Contact: ssohn@uoregon.edu
 
-You'll add a storage to your previous project using MongoDB and `docker-compose`.
-As we discussed, `docker-compose` makes it easier to create, manage and connect multiple container to create a single service comprised of different subservices.
+This project calculates the open and close times for each specified checkpoints of the brevet given its distance and the starting time.
+Additionally, it stores the input data in the database when the `Submit` button is clicked as well as retrieves all the stored data and displays it when the button `Display` is clicked.
 
-Presently, there's only a placeholder directory for your Flask app, and a `docker-compose` configuration file. You will copy over `brevets/` from your completed project 4, add a MongoDB service to docker-compose and your Flask app. You will also add two buttons named `Submit` and `Display` to the webpage. `Submit` must store the information (brevet distance, start time, checkpoints and their opening and closing times) in the database (overwriting existing ones). `Display` will fetch the information from the database and fill in the form with them.
 
-Recommended: Review [MongoDB README](MONGODB.md).
+## Docker
+Run the program with Docker Compose so that we can have multiple containers running at the same time. In this case, we want the web and database to be executing simultaneously.
+```
+docker compose up --build -d
+```
+This will let Docker Compose build anything that has not already been installed previously based on the `docker-compose.yml` file.
+The `-d` flag lets the container run in detached mode, as Mongo needs to be run the background. 
 
-## Tasks
+To stop the docker, run the command
+```
+docker compose down
+```
 
-1. Add two buttons `Submit` and `Display` in the ACP calculator page.
+To check if there are any running containers, run the command
+```
+docker compose ls
+```
 
-	- Upon clicking the `Submit` button, the control times should be inserted into a MongoDB database, and the form should be cleared (reset) **without** refreshing the page.
+## Application 
+On the web page showing ACP Brevet Times, Select the brevet distance and set the beginning date and time.\
+Then in the table below, put in checkpoints from 0 to the brevet distance (or up to 20% beyond).\
+These users inputs are taken by AJAX in the template and passed into a function in the python Flask (`flask_brevets.py`),
+which passes the data as parameters into functions called from `acp_times.py`.\
+The functions `open_time` and `close_time` are called, which calculate the open and close times of the checkpoint specified as a parameter.\
+The functions each return an arrow object of the open/close time, which is converted to JSON data that is sent back to the AJAX. 
+The times are displayed in the designated format in the table.\
+When the user increments or decrements the control distance, the input values will change, hence the times displayed will as well.
 
-	- Upon clicking the `Display` button, the entries from the database should be filled into the existing page.
+`mondodb.py` accesses the mongo database, containing the two functions for inserting and fetching data respectively. 
+`brevet_insert` stores data passed in from the flask into the database. The flask returns the jsonified indicator of whether the data has been inserted. 
+`brevet_fetch` fetches all the data stored in the database and returns it to flask. Flask returns the jsonified results back to the template. 
 
-	- Handle error cases appropriately. For example, Submit should return an error if no control times are input. One can imagine many such cases: you'll come up with as many cases as possible.
-
-2. An automated `nose` test suite with at least 2 test cases: at least one for for DB insertion and one for retrieval.
-
-3. Update README.md with brevet control time calculation rules (you were supposed to do this for Project 4), and additional information regarding this project.
-	- This project will be peer-reviewed, so be thorough.
-
-## Grading Rubric
-
-* If your code works as expected: 100 points. This includes:
-	* Front-end implementation (`Submit` and `Display`).
-	
-	* Back-end implementation (Connecting to MongoDB, insertion and selection).
-	
-	* AJAX interaction between the frontend and backend (AJAX for `Submit` and `Display`).
-	
-	* Updating `README` with a clear specification (including details from Project 4).
-	
-	* Handling errors correctly.
-	
-	* Writing at least 2 correct tests using nose (put them in `tests`, follow Project 3 if necessary), and all should pass.
-
-* If DB operations do not work as expected (either submit fails to store information, or display fails to retrive and show information correctly), 60 points will be docked.
-
-* If database-related tests are not found in `brevets/tests/`, or are incomplete, or do not pass, 20 points will be docked.
-
-* If docker does not build/run correctly, or the yaml file is not updated correctly, 5 will be assigned assuming README is updated.
-
-## Authors
-
-Michal Young, Ram Durairajan. Updated by Ali Hassani.
+In the template file (`calc.html`), when the button "Submit" is clicked, AJAX sends all of the data as arguments to flask. All the data is automatically cleared from the page.
+Then, flask takes the data and calls the function `brevet_insert` (from the pymongo file) to store them in the database. 
+When the button `Display` is clicked, the server brings back all the data that have been saved. This is done by calling the function `brevet_fetch` in flask, which fetches all of the data from the database, jsonifies them, and sends them back to the template. 
+These data then populate the table in the corresponing fields. 
